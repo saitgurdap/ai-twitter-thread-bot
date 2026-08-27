@@ -1,0 +1,51 @@
+name: X Thread Bot
+
+on:
+  schedule:
+    # Adjust these to your target audience's peak hours (cron uses UTC).
+    # Example below targets Turkey time (UTC+3): 09:00, 12:30, 16:00, 20:30
+    - cron: "0 6 * * *"
+    - cron: "30 9 * * *"
+    - cron: "0 13 * * *"
+    - cron: "30 17 * * *"
+  workflow_dispatch: {} # lets you trigger a run manually via "Run workflow"
+
+permissions:
+  contents: write
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run the bot
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          SCREENSHOT_API_KEY: ${{ secrets.SCREENSHOT_API_KEY }}
+          X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
+          OUTPUT_LANGUAGE: ${{ vars.OUTPUT_LANGUAGE }}
+          TRENDS_WOEID: ${{ vars.TRENDS_WOEID }}
+        run: python main.py
+
+      - name: Commit updated state.json
+        run: |
+          git config user.name "x-thread-bot"
+          git config user.email "actions@github.com"
+          git add state.json
+          git diff --quiet && git diff --staged --quiet || git commit -m "update state [skip ci]"
+          git push
